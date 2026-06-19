@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شطرنج 10x10 الأسطوري - شاشة الخسارة المطورة</title>
+    <title>شطرنج 10x10 الأسطوري - شاشة خسارة الأونلاين التزامنية</title>
     
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
@@ -200,14 +200,12 @@
         }
 
         .hidden { display: none !important; }
-        .ai-learning-badge { background: #e74c3c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
     <h1>شطرنج 10x10 الأسطوري</h1>
-    <div class="subtitle">نسخة مطورة للهواتف 📱 | دعم شاشة الفوز وشاشة الخسارة الحزينة 💔</div>
+    <div class="subtitle">نسخة مطورة للهواتف 📱 | تزامن شاشات الفوز والخسارة التام في الأونلاين 🌐</div>
 
     <div id="setup-screen" class="screen active">
         <h2>إعداد وتجهيز نمط اللعب</h2>
@@ -279,7 +277,7 @@
 
     <script>
         // ==========================================
-        // 1. قسم الإعدادات وتصميم البيانات (سهل الإضافة والتعديل)
+        // 1. قسم الإعدادات وتصميم البيانات
         // ==========================================
         const PIECES_ICONS = {
             white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙', mokhtal: 'M', roba: 'R', bat: 'B' },
@@ -422,6 +420,10 @@
                 else if(data.type === 'MOVE_PIECE') {
                     executeMoveLocal(data.fromR, data.fromC, data.toR, data.toC, data.moveType, false);
                     renderBoard();
+                }
+                // استقبال حدث نهاية اللعبة من الخصم لعرض شاشة الخسارة فوراً
+                else if(data.type === 'GAME_OVER') {
+                    endGame(data.winnerColor);
                 }
             });
         }
@@ -651,6 +653,7 @@
         function executeMoveLocal(fromR, fromC, toR, toC, moveType, sendNetwork = true) {
             let movingPiece = board[fromR][fromC]; 
             let targetPiece = board[toR][toC];
+            let kingKilled = false;
 
             if (targetPiece) {
                 if (movingPiece.type === 'roba') {
@@ -661,7 +664,9 @@
                 if (currentPlayerObj.name === 'yahya' && !currentPlayerObj.blockFeatures && targetPiece.type === 'rook') {
                     revivePiece(turn, 'rook');
                 }
-                if (targetPiece.type === 'king') { endGame(turn); return; }
+                if (targetPiece.type === 'king') { 
+                    kingKilled = true;
+                }
                 hasEatenCountThisTurn++;
             }
 
@@ -671,8 +676,18 @@
 
             logMessage(`🎬 [${turn === 'white' ? 'الأبيض' : 'الأسود'}] نقل ${movingPiece.type}`);
 
+            // إرسال البيانات عبر الشبكة إذا كان النمط أونلاين
             if (gameMode === 'online' && sendNetwork && conn) {
                 conn.send({ type: 'MOVE_PIECE', fromR, fromC, toR, toC, moveType });
+                // إذا تم أكل الملك، نرسل إشارة نهاية اللعبة الفورية للخصم ليعرض الخسارة
+                if (kingKilled) {
+                    conn.send({ type: 'GAME_OVER', winnerColor: turn });
+                }
+            }
+
+            if (kingKilled) { 
+                endGame(turn); 
+                return; 
             }
 
             let currentPlayerObj = turn === 'white' ? player1 : player2;
@@ -766,7 +781,7 @@
         }
 
         // ==========================================
-        // 8. نظام التحقق من الفائز والخاسر (تعديل الشاشة الذكي)
+        // 8. نظام عرض الفائز والخاسر المتزامن والذكي
         // ==========================================
         function endGame(winnerColor) {
             document.getElementById('game-screen').classList.remove('active');
@@ -781,23 +796,23 @@
             let winnerName = winnerColor === 'white' ? player1.name : player2.name;
             let loserName = winnerColor === 'white' ? player2.name : player1.name;
 
-            // إذا كان اللعب أونلاين أو ضد الكمبيوتر
+            // إذا كان اللعب معتمد على طرف واحد (أونلاين أو ضد كمبيوتر)
             if (mySide !== 'both') {
                 if (mySide === winnerColor) {
-                    // شاشة الفوز العادية
+                    // شاشة الفائز الأساسية للطرف المنتصر
                     endTitle.style.color = '#27ae60';
                     endTitle.innerText = '👑 انتصار ساحق! 👑';
                     endMessage.innerText = `كفو! لقد هزمت [ ${loserName} ] وشرّفت جيشك بالكامل! 🎉`;
                     endBtn.className = 'btn-primary';
                 } else {
-                    // شاشة الخسارة المخصصة
+                    // شاشة الخسارة الحزينة للطرف المهزوم (تظهر فوراً في الأونلاين للخصم)
                     endTitle.style.color = '#e74c3c';
-                    endTitle.innerText = '💔 هارد لك.. لقد خسرت! 💔';
+                    endTitle.innerText = '💔 هارد لك.. لقد خسرت المعركة! 💔';
                     endMessage.innerText = `للأسف تم قنص ملكك بواسطة [ ${winnerName} ].. حاول مرة أخرى لتنتقم! ⚔️`;
-                    endBtn.className = 'btn-danger'; // تحويل الزر للون الأحمر المناسب للخسارة
+                    endBtn.className = 'btn-danger';
                 }
             } else {
-                // إذا كان اللعب أوفلاين على نفس الجهاز لشخصين يظهر من فاز ومن خسر
+                // إذا كان اللعب أوفلاين محلي لشخصين معاً
                 endTitle.style.color = '#f1c40f';
                 endTitle.innerText = '🏁 انتهت المعركة! 🏁';
                 endMessage.innerText = `الفائز: [ ${winnerName} ] 👑 \n الخاسر: [ ${loserName} ] 💔`;
