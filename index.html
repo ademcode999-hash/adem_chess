@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شطرنج 10x10 الأسطوري - نسخة مطورة ومتجاوبة</title>
+    <title>شطرنج 10x10 الأسطوري - نسخة الهاتف المكبرة</title>
     
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
@@ -26,7 +26,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #1e1e24;
             color: #fff;
-            padding: 10px;
+            padding: 10px 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -37,14 +37,14 @@
             color: #f1c40f; 
             text-align: center; 
             margin: 10px 0 5px 0; 
-            font-size: 1.8rem;
+            font-size: 1.6rem;
         }
         
         .subtitle { 
             color: #bdc3c7; 
             text-align: center; 
-            margin-bottom: 20px; 
-            font-size: 0.9rem; 
+            margin-bottom: 15px; 
+            font-size: 0.85rem; 
             max-width: 600px;
             padding: 0 10px;
         }
@@ -57,10 +57,17 @@
             padding: 20px; 
             border-radius: 12px; 
             box-shadow: 0 6px 20px rgba(0,0,0,0.5); 
-            margin-top: 10px; 
+            margin-top: 5px; 
         }
         
         .screen.active { display: block; }
+
+        /* تعديل خاص بشاشة اللعب لتقليل الهوامش وزيادة حجم الرقعة في الهواتف */
+        @media screen and (max-width: 480px) {
+            body { padding: 5px 2px; }
+            .screen { padding: 10px 5px; border-radius: 6px; }
+            h1 { font-size: 1.3rem; }
+        }
 
         .form-group { margin-bottom: 15px; }
         
@@ -80,7 +87,6 @@
             font-size: 1rem; 
             background: #fff; 
             color: #000; 
-            transition: 0.3s; 
         }
         
         .name-status-msg { 
@@ -107,7 +113,6 @@
             font-size: 1rem; 
             cursor: pointer; 
             font-weight: bold; 
-            transition: 0.2s; 
             min-width: 120px;
         }
         
@@ -118,18 +123,18 @@
         #game-info { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 15px; 
+            margin-bottom: 10px; 
             background: #34495e; 
-            padding: 12px; 
+            padding: 10px; 
             border-radius: 6px; 
-            font-size: 0.9rem; 
+            font-size: 0.85rem; 
         }
         
-        /* جعل الرقعة مرنة ومتجاوبة بالكامل مع مقاسات الشاشات */
+        /* تضخيم الرقعة لتملأ الشاشة تماماً في الأجهزة المحمولة */
         #board-container { 
             width: 100%;
-            max-width: 550px;
-            margin: 15px 0; 
+            max-width: 580px;
+            margin: 10px auto; 
             aspect-ratio: 1 / 1;
         }
         
@@ -137,9 +142,9 @@
             display: grid; 
             grid-template-columns: repeat(10, 1fr); 
             grid-template-rows: repeat(10, 1fr); 
-            border: 4px solid var(--board-border); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6); 
-            border-radius: 6px; 
+            border: 3px solid var(--board-border); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+            border-radius: 4px; 
             width: 100%;
             height: 100%;
         }
@@ -161,11 +166,12 @@
             content: ''; 
             width: 35%; 
             height: 35%; 
-            background: rgba(46, 204, 113, 0.7); 
+            background: rgba(46, 204, 113, 0.75); 
             border-radius: 50%; 
             position: absolute; 
         }
 
+        /* تكبير حجم القطعة لملء المربع بالكامل بناءً على حجم الشاشة المتغير */
         .piece { 
             display: flex; 
             justify-content: center; 
@@ -173,22 +179,25 @@
             width: 100%; 
             height: 100%; 
             font-weight: bold; 
-            font-size: calc(1.5vw + 1.5vh); /* حجم الخط يتغير ديناميكياً مع الشاشة */
+            font-size: 7.5vw; /* حجم خط ديناميكي كبير جداً ومناسب لشاشات الهواتف */
+            line-height: 1;
         }
-        @media screen and (min-width: 600px) {
-            .piece { font-size: 28px; }
+
+        /* عندما تكبر الشاشة (كمبيوتر/تابلت) نحدد حداً أقصى لحجم القطع والرقعة */
+        @media screen and (min-width: 580px) {
+            .piece { font-size: 32px; }
         }
         
-        .piece.white { color: #ffffff; filter: drop-shadow(1px 1px 2px #000); }
-        .piece.black { color: #000000; filter: drop-shadow(1px 1px 2px #fff); }
+        .piece.white { color: #ffffff; filter: drop-shadow(1px 1px 1.5px #000); }
+        .piece.black { color: #000000; filter: drop-shadow(1px 1px 1.5px #fff); }
 
         #log { 
-            max-height: 90px; 
+            max-height: 80px; 
             overflow-y: auto; 
             background: #1a252f; 
-            padding: 10px; 
+            padding: 8px; 
             border-radius: 6px; 
-            font-size: 0.85rem; 
+            font-size: 0.8rem; 
             margin-top: 10px; 
             border: 1px solid var(--board-border); 
             width: 100%;
@@ -202,7 +211,7 @@
 <body>
 
     <h1>شطرنج 10x10 الأسطوري</h1>
-    <div class="subtitle">تصميم متجاوب بالكامل 📱💻 | نظام غرف ملتيبلير محسن ومزامنة ذكية للقدرات</div>
+    <div class="subtitle">نسخة مطورة للهواتف 📱 (عرض أقصى للرقعة وتكبير للقطع) مع دعم الميزات الكاملة</div>
 
     <div id="setup-screen" class="screen active">
         <h2>إعداد وتجهيز نمط اللعب</h2>
@@ -252,8 +261,8 @@
 
     <div id="game-screen" class="screen">
         <div id="game-info">
-            <div>الدور الحالي: <span id="current-turn-display" style="color: #f1c40f; font-weight: bold;">الأبيض</span></div>
-            <div>النمط: <span id="my-side-display" style="color: #27ae60; font-weight: bold;">الطرفين</span> <span id="learning-indicator" class="ai-learning-badge hidden">AI متطور نشط...</span></div>
+            <div>الدور: <span id="current-turn-display" style="color: #f1c40f; font-weight: bold;">الأبيض</span></div>
+            <div>النمط: <span id="my-side-display" style="color: #27ae60; font-weight: bold;">الطرفين</span></div>
         </div>
         
         <div id="board-container">
@@ -261,7 +270,7 @@
         </div>
 
         <div id="log">سجل المعركة والتحركات يظهر هنا...</div>
-        <button class="btn-danger" style="width: 100%; margin-top: 20px;" onclick="resetGameLocal()">انسحاب والعودة للرئيسية</button>
+        <button class="btn-danger" style="width: 100%; margin-top: 15px;" onclick="resetGameLocal()">انسحاب والعودة للرئيسية</button>
     </div>
 
     <div id="end-screen" class="screen">
@@ -274,19 +283,15 @@
 
     <script>
         // ==========================================
-        // 1. قسم الإعدادات وتصميم البيانات (قوابل للإضافة والعديل بسهولة)
+        // 1. قسم الإعدادات وتصميم البيانات (سهل الإضافة والتعديل)
         // ==========================================
-        
-        // الأشكال الرمزية للقطع (أضف قطعك الجديدة هنا بسهولة)
         const PIECES_ICONS = {
             white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙', mokhtal: 'M', roba: 'R', bat: 'B' },
             black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟', mokhtal: 'M', roba: 'R', bat: 'B' }
         };
 
-        // قيم القطع لحسابات الذكاء الاصطناعي
         const PIECE_VALUES = { king: 20000, queen: 900, rook: 500, bishop: 330, knight: 320, mokhtal: 380, bat: 460, roba: 250, pawn: 100 };
 
-        // ميزات الأسماء (أضف أي اسم جديد وميزته هنا مباشرة ليتعرف عليها النظام تلقائياً!)
         const NAME_FEATURES = {
             'adem': '🔥 ميزتك: إضافة صف بيادق جديد مخصص لك فقط للسيطرة!',
             'younes': '🎲 ميزتك: تبديل أماكن صفك الخلفي بشكل عشوائي تماماً!',
@@ -360,7 +365,7 @@
         }
 
         // ==========================================
-        // 4. نظام اتصال غرف الـ Multiplayer (PeerJS) المحسن
+        // 4. نظام اتصال غرف الـ Multiplayer (PeerJS)
         // ==========================================
         function initPeer(customId = null) {
             document.getElementById('room-info').innerText = "جاري الاتصال بالسيرفر الرئيسي... 🌐";
@@ -369,7 +374,7 @@
 
             peer.on('open', (id) => {
                 let code = id.replace("chess10x10-", "");
-                document.getElementById('room-info').innerText = `تم إنشاء الغرفة بنجاح! كود الغرفة: [ ${code} ] ارسله لصديقك وينتظر دخوله...`;
+                document.getElementById('room-info').innerText = `تم إنشاء الغرفة! كود الدخول: [ ${code} ] أرسله لصديقك...`;
             });
             
             peer.on('connection', (c) => { conn = c; setupConnectionEvents(); });
@@ -434,13 +439,13 @@
                 if(gameMode === 'single') {
                     aiDifficulty = document.getElementById('ai-difficulty-select').value;
                     let diffNames = { 'easy': 'سهل', 'hard': 'صعب', 'impossible': 'المستحيل 🔥' };
-                    player2.name = `الكمبيوتر (${diffNames[aiDifficulty]}) 🤖`; 
+                    player2.name = `الكمبيوتر🤖`; 
                     mySide = 'white';
                     document.getElementById('my-side-display').innerText = `ضد كمبيوتر ${diffNames[aiDifficulty]}`;
                 } else {
                     player2.name = document.getElementById('player2-name-input').value.trim() || 'اللاعب 2';
                     mySide = 'both'; 
-                    document.getElementById('my-side-display').innerText = "أوفلاين (جهاز واحد 👥)";
+                    document.getElementById('my-side-display').innerText = "أوفلاين 👥";
                 }
             }
 
@@ -551,13 +556,12 @@
         }
 
         // ==========================================
-        // 6. محرك حركات القطع (أضف شروط حركتك للقطع الجديدة هنا)
+        // 6. محرك حركات القطع
         // ==========================================
         function getMoves(r, c) {
             const piece = board[r][c]; let moves = []; if(!piece) return moves;
             const dir = piece.color === 'white' ? -1 : 1;
 
-            // حركات قطعة المختال والوطواط المتطورة
             if(piece.type === 'mokhtal' || piece.type === 'bat') {
                 let cornerDirections = [{r:2, c:2}, {r:2, c:-2}, {r:-2, c:2}, {r:-2, c:-2}, {r:1, c:1}, {r:1, c:-1}, {r:-1, c:1}, {r:-1, c:-1}];
                 cornerDirections.forEach(d => {
@@ -669,7 +673,7 @@
             board[fromR][fromC] = null;
             movingPiece.hasMoved = true;
 
-            logMessage(`🎬 [${turn === 'white' ? 'الأبيض' : 'الأسود'}] نقل ${movingPiece.type} إلى (${toR},${toC})`);
+            logMessage(`🎬 [${turn === 'white' ? 'الأبيض' : 'الأسود'}] نقل ${movingPiece.type}`);
 
             if (gameMode === 'online' && sendNetwork && conn) {
                 conn.send({ type: 'MOVE_PIECE', fromR, fromC, toR, toC, moveType });
@@ -677,7 +681,7 @@
 
             let currentPlayerObj = turn === 'white' ? player1 : player2;
             if (hasEatenCountThisTurn > 0 && currentPlayerObj.name === 'halim' && !currentPlayerObj.blockFeatures && hasEatenCountThisTurn === 1) {
-                logMessage(`⚡ ميزة halim نشطة! تلعب دوراً إضافياً متتالياً.`);
+                logMessage(`⚡ ميزة halim نشطة! دور إضافي.`);
                 hasEatenCountThisTurn = 2;
             } else {
                 hasEatenCountThisTurn = 0;
@@ -692,14 +696,14 @@
             for (let col = 0; col < BOARD_SIZE; col++) {
                 if (!board[row][col]) {
                     board[row][col] = { type: type, color: color, hasMoved: true };
-                    logMessage(`🔮 ميزة المستدعي نشطة! عادت ${type} للحياة في المربع (${row},${col})`);
+                    logMessage(`🔮 عادت ${type} للحياة!`);
                     return;
                 }
             }
         }
 
         // ==========================================
-        // 7. محرك ذكاء اصطناعي (AI) متطور تلقائياً
+        // 7. محرك ذكاء اصطناعي (AI)
         // ==========================================
         function makeAiMove() {
             if (turn !== 'black' || gameMode !== 'single') return;
@@ -748,10 +752,6 @@
                     board[m.fromR][m.fromC] = movingPiece; board[m.toR][m.toC] = target;
 
                     if (isThreatened) score -= PIECE_VALUES[movingPiece.type] * 10;
-                    if (aiDifficulty === 'impossible') {
-                        if (movingPiece.type === 'king' && isThreatened) score -= 50000;
-                        if (movingPiece.type === 'pawn') score += m.toR;
-                    }
 
                     if (score > bestScore) { bestScore = score; selectedMove = m; }
                 });
@@ -773,7 +773,7 @@
             document.getElementById('game-screen').classList.remove('active');
             document.getElementById('end-screen').classList.add('active');
             let winnerName = winnerColor === 'white' ? player1.name : player2.name;
-            document.getElementById('end-message').innerText = `🏆 تهانينا لـ [ ${winnerName} ] على الفوز الساحق بجداره!`;
+            document.getElementById('end-message').innerText = `🏆 فاز [ ${winnerName} ] بالمعركة!`;
         }
 
         function resetGameLocal() {
