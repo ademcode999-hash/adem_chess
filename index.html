@@ -290,7 +290,7 @@
             'adem': '🔥 ميزتك: إضافة صف بيادق جديد مخصص لك فقط للسيطرة!',
             'younes': '🎲 ميزتك: تبديل أماكن صفك الخلفي بشكل عشوائي تماماً!',
             'halim': '⚡ ميزتك: عند قنص وأكل أي قطعة تلعب مرتين متتاليتين!',
-            'yacine': '❌ ميزتك المطلقة: قذف وحذف ملك الخصم فوراً عند البداية والفوز التلقائي! 👑',
+            'yacine': '❌ ميزتك: حذف ملكة الخصم تلقائياً فوراً عند بداية المعركة! 👑',
             'sulaymen': '🛡️ ميزتك: حظر وإلغاء ميزة اسم خصمك بالكامل!',
             'soulymen': '🧊 ميزتك: تجميد ملك وملكة الخصم ومنعه من تحريكهم نهائياً!',
             'hanin': '🦇 ميزتك: استبدال الملكة بقطعة الوطواط (Bat) الأسطورية!',
@@ -453,14 +453,15 @@
 
             turn = 'white';
             initBoard();
+
+            // تطبيق ميزة اسم yacine لحذف الملكة الخاصة بالخصم عند بدء المباراة
+            if(player1.name === 'yacine' && !player1.blockFeatures) removeOpponentQueen('black');
+            if(player2.name === 'yacine' && !player2.blockFeatures) removeOpponentQueen('white');
+
             document.getElementById('setup-screen').classList.remove('active');
             document.getElementById('game-screen').classList.add('active');
             document.getElementById('current-turn-display').innerText = player1.name;
             renderBoard();
-
-            // التحقق الفوري من ميزة ياسين لحذف الملك عند بدء المباراة مباشرة
-            if(player1.name === 'yacine' && !player1.blockFeatures) removeOpponentKing('black', 'white');
-            if(player2.name === 'yacine' && !player2.blockFeatures) removeOpponentKing('white', 'black');
         }
 
         function initBoard() {
@@ -493,24 +494,16 @@
             board[1][6] = { type: 'roba', color: 'black', hasMoved: false };
         }
 
-        // دالة مخصصة لاسم yacine لاستهداف وحذف الملك فقط وإنهاء المباراة فوراً للخصم
-        function removeOpponentKing(opponentColor, winnerColor) {
+        // دالة مخصصة لاسم yacine لحذف الملكة (أو قطعة الوطواط إذا تحولت) الخاصة بالخصم عند البداية
+        function removeOpponentQueen(opponentColor) {
             for(let r=0; r<BOARD_SIZE; r++) {
                 for(let c=0; c<BOARD_SIZE; c++) {
-                    if(board[r][c] && board[r][c].color === opponentColor && board[r][c].type === 'king') {
-                        board[r][c] = null; // حذف الملك
+                    if(board[r][c] && board[r][c].color === opponentColor && (board[r][c].type === 'queen' || board[r][c].type === 'bat')) {
+                        board[r][c] = null; // حذف الملكة
                     }
                 }
             }
-            logMessage(`❌ ميزة إلهية لـ yacine: تم حذف ملك الخصم تلقائياً وبدء سحق الجيش!`);
-            
-            if (gameMode === 'online' && conn) {
-                conn.send({ type: 'GAME_OVER', winnerColor: winnerColor });
-            }
-            
-            setTimeout(() => {
-                endGame(winnerColor);
-            }, 500);
+            logMessage(`❌ ميزة yacine: تم اغتيال وحذف ملكة الخصم تلقائياً عند البداية!`);
         }
 
         function renderBoard() {
