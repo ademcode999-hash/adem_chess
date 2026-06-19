@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شطرنج 10x10 الأسطوري - غرف أونلاين مطورة</title>
+    
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
+    <style>
+        :root {
+            --easy-color: #3498db;
+            --normal-color: #95a5a6;
+            --hard-color: #f1c40f;
+            --ultra-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e24;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: #f1c40f; text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #bdc3c7; text-align: center; margin-bottom: 20px; font-size: 14px; }
+
+        .screen { display: none; width: 100%; max-width: 650px; background: #2c3e50; padding: 25px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.5); margin-top: 10px; box-sizing: border-box; }
+        .screen.active { display: block; }
+
+        .form-group { margin-bottom: 15px; position: relative; }
+        label { display: block; margin-bottom: 7px; font-weight: bold; color: #ecf0f1; }
+        input[type="text"], select { width: 100%; padding: 12px; border-radius: 6px; border: 2px solid #34495e; font-size: 16px; box-sizing: border-box; background: #fff; color: #000; transition: 0.3s; }
+        
+        .name-status-msg { font-size: 13px; color: #27ae60; margin-top: 5px; min-height: 18px; font-weight: bold; display: block; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background: #27ae60; color: white; }
+        .btn-secondary { background: #2980b9; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+
+        #game-info { display: flex; justify-content: space-between; margin-bottom: 15px; background: #34495e; padding: 12px; border-radius: 6px; font-size: 15px; }
+        #board-container { display: flex; justify-content: center; margin: 15px 0; }
+        #chess-board { display: grid; grid-template-columns: repeat(10, 52px); grid-template-rows: repeat(10, 52px); border: 5px solid #34495e; box-shadow: 0 10px 25px rgba(0,0,0,0.6); border-radius: 4px; }
+        
+        .cell { width: 52px; height: 52px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; user-select: none; position: relative; }
+        .cell.light { background-color: #f0d9b5; color: #b58863; }
+        .cell.dark { background-color: #b58863; color: #f0d9b5; }
+        .cell.selected { background-color: #769656 !important; }
+        .cell.highlight { position: relative; }
+        .cell.highlight::after { content: ''; width: 18px; height: 18px; background: rgba(46, 204, 113, 0.6); border-radius: 50%; position: absolute; }
+
+        .piece { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; font-weight: bold; }
+        .piece.white { color: #ffffff; filter: drop-shadow(1px 1px 2px #000); }
+        .piece.black { color: #000000; filter: drop-shadow(1px 1px 2px #fff); }
+
+        #log { max-height: 90px; overflow-y: auto; background: #1a252f; padding: 10px; border-radius: 6px; font-size: 13px; margin-top: 10px; border: 1px solid #34495e; }
+
+        .hidden { display: none !important; }
+        .ai-learning-badge { background: #e74c3c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+
+    <h1>شطرنج 10x10 الأسطوري</h1>
+    <div class="subtitle">نسخة حركة الفيل للمختال مع غرف ملتيبلير محسنة ومزامنة كاملة ⚔️</div>
+
+    <div id="setup-screen" class="screen active">
+        <h2>إعداد وتجهيز نمط اللعب</h2>
+        
+        <div class="form-group">
+            <label>اختر طور اللعب المفصل:</label>
+            <select id="game-mode-select" onchange="switchModeUi()">
+                <option value="offline" selected>أوفلاين (لاعبين على نفس الجهاز 👥)</option>
+                <option value="single">سنقل بلير (ضد الذكاء الاصطناعي المتطور 🤖)</option>
+                <option value="online">أونلاين (غرف ملتيبلير مطورة 🌐)</option>
+            </select>
+        </div>
+
+        <div class="form-group hidden" id="ai-difficulty-group">
+            <label>اختر مستوى صعوبة الكمبيوتر (AI):</label>
+            <select id="ai-difficulty-select">
+                <option value="easy">سهل (تحركات عشوائية وبسيطة)</option>
+                <option value="hard">صعب (حساب هجومي ودفاعي ذكي 🧠)</option>
+                <option value="impossible">المستحيل 🔥</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="p1-input-group">
+            <label id="p1-label">اسم اللاعب الأول (الأبيض):</label>
+            <input type="text" id="player1-name-input" placeholder="اكتب الاسم هنا..." oninput="handleNameInput(this, 1)">
+            <span id="p1-status" class="name-status-msg"></span>
+        </div>
+
+        <div class="form-group" id="p2-input-group">
+            <label id="p2-label">اسم اللاعب الثاني (الأسود):</label>
+            <input type="text" id="player2-name-input" placeholder="اكتب الاسم هنا..." oninput="handleNameInput(this, 2)">
+            <span id="p2-status" class="name-status-msg"></span>
+        </div>
+
+        <div id="online-ui-group" class="hidden">
+            <hr style="border-color: #34495e; margin: 20px 0;">
+            <h3>خيارات اتصالات الغرف والشبكة</h3>
+            <div class="btn-group">
+                <button class="btn-secondary" id="host-btn" onclick="initMultiplayerHost()">إنشاء غرفة (Host)</button>
+                <button class="btn-secondary" id="join-btn" onclick="initMultiplayerJoin()">الدخول بكود (Join)</button>
+            </div>
+            <div id="room-info" style="margin-top: 15px; font-weight: bold; color: #f1c40f; font-size: 14px; text-align: center;"></div>
+        </div>
+
+        <button class="btn-primary" id="start-game-btn" style="width: 100%; margin-top: 25px; font-size: 18px;" onclick="startGameLocal()">انطلاق المعركة ⚔️</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div id="game-info">
+            <div>الدور الحالي: <span id="current-turn-display" style="color: #f1c40f; font-weight: bold;">الأبيض</span></div>
+            <div>النمط: <span id="my-side-display" style="color: #27ae60; font-weight: bold;">الطرفين</span> <span id="learning-indicator" class="ai-learning-badge hidden">AI متطور نشط...</span></div>
+        </div>
+        
+        <div id="board-container">
+            <div id="chess-board"></div>
+        </div>
+
+        <div id="log">سجل المعركة والتحركات يظهر هنا...</div>
+        <button class="btn-danger" style="width: 100%; margin-top: 20px;" onclick="resetGameLocal()">انسحاب والعودة للرئيسية</button>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <div style="text-align: center; padding: 10px;">
+            <h2 id="end-title" style="color: #27ae60;">👑 انتهت المعركة! 👑</h2>
+            <p id="end-message" style="font-size: 18px; margin-bottom: 25px;"></p>
+            <button class="btn-primary" style="width: 100%;" onclick="resetGameLocal()">اللعب مجدداً 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const PIECES = {
+            white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙', mokhtal: 'M', roba: 'R', bat: 'B' },
+            black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟', mokhtal: 'M', roba: 'R', bat: 'B' }
+        };
+
+        let board = [];
+        let BOARD_SIZE = 10;
+        let turn = 'white'; 
+        let gameMode = 'offline'; 
+        let aiDifficulty = 'easy'; 
+        let mySide = 'both'; 
+        
+        let player1 = { name: 'اللاعب 1', side: 'white', blockFeatures: false };
+        let player2 = { name: 'اللاعب 2', side: 'black', blockFeatures: false };
+
+        let selectedCell = null;
+        let validMoves = [];
+        let hasEatenCountThisTurn = 0;
+
+        let peer = null; let conn = null;
+
+        const NAME_FEATURES = {
+            'adem': '🔥 ميزتك: إضافة صف بيادق جديد مخصص لك فقط للسيطرة!',
+            'younes': '🎲 ميزتك: تبديل أماكن صفك الخلفي بشكل عشوائي تماماً!',
+            'halim': '⚡ ميزتك: عند قنص وأكل أي قطعة تلعب مرتين متتاليتين!',
+            'yacine': '❌ ميزتك: حذف قطعة عشوائية تماماً من جيش الخصم عند البداية!',
+            'sulaymen': '🛡️ ميزتك: حظر وإلغاء ميزة اسم خصمك بالكامل!',
+            'soulymen': '🧊 ميزتك: تجميد ملك وملكة الخصم ومنعه من تحريكهم نهائياً!',
+            'hanin': '🦇 ميزتك: استبدال الملكة بقطعة الوطواط (Bat) الأسطورية!',
+            'yahya': '🔮 ميزتك: عند أكل أي قلعة للخصم، تعود قلعة ميتة للحياة فورا!',
+            'aziz': '👑 ميزتك المطلقة: إلغاء وحظر ميزات جميع الأسماء في المباراة!'
+        };
+
+        function switchModeUi() {
+            gameMode = document.getElementById('game-mode-select').value;
+            const p1Group = document.getElementById('p1-input-group');
+            const p2Group = document.getElementById('p2-input-group');
+            const onlineGroup = document.getElementById('online-ui-group');
+            const aiDifficultyGroup = document.getElementById('ai-difficulty-group');
+            const startBtn = document.getElementById('start-game-btn');
+
+            if(gameMode === 'single') {
+                p1Group.classList.remove('hidden'); p2Group.classList.add('hidden'); onlineGroup.classList.add('hidden');
+                aiDifficultyGroup.classList.remove('hidden');
+                document.getElementById('p1-label').innerText = "اسمك الشخصي (الأبيض):";
+                startBtn.classList.remove('hidden');
+            } else if(gameMode === 'online') {
+                p1Group.classList.remove('hidden'); p2Group.classList.add('hidden'); onlineGroup.classList.remove('hidden');
+                aiDifficultyGroup.classList.add('hidden');
+                document.getElementById('p1-label').innerText = "اسمك الشخصي في الغرفة:";
+                startBtn.classList.add('hidden');
+            } else {
+                p1Group.classList.remove('hidden'); p2Group.classList.remove('hidden'); onlineGroup.classList.add('hidden');
+                aiDifficultyGroup.classList.add('hidden');
+                document.getElementById('p1-label').innerText = "اسم اللاعب الأول (الأبيض):";
+                startBtn.classList.remove('hidden');
+            }
+        }
+
+        function handleNameInput(inputEl, playerNum) {
+            inputEl.value = inputEl.value.toLowerCase();
+            let name = inputEl.value.trim();
+            let statusSpan = document.getElementById(playerNum === 1 ? 'p1-status' : 'p2-status');
+
+            if(NAME_FEATURES[name]) {
+                statusSpan.style.color = '#27ae60'; statusSpan.innerText = NAME_FEATURES[name];
+            } else if(name.length > 0) {
+                statusSpan.style.color = '#bdc3c7'; statusSpan.innerText = '👤 لاعب عادي';
+            } else { statusSpan.innerText = ''; }
+        }
+
+        function initPeer(customId = null) {
+            document.getElementById('room-info').innerText = "جاري الاتصال بالسيرفر الرئيسي... 🌐";
+            let pId = customId || "chess10x10-" + Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(pId);
+
+            peer.on('open', (id) => {
+                let code = id.replace("chess10x10-", "");
+                document.getElementById('room-info').innerText = `تم إنشاء الغرفة بنجاح! كود الغرفة: [ ${code} ] ارسله لصديقك وينتظر دخوله...`;
+            });
+            
+            peer.on('connection', (c) => { 
+                conn = c; 
+                setupConnectionEvents(); 
+            });
+        }
+
+        function initMultiplayerHost() {
+            mySide = 'white'; 
+            document.getElementById('my-side-display').innerText = "الأبيض (المستضيف)";
+            player1.name = document.getElementById('player1-name-input').value.trim() || 'المستضيف';
+            initPeer();
+        }
+
+        function initMultiplayerJoin() {
+            let code = prompt("أدخل كود الغرفة المكون من 4 أرقام:"); 
+            if(!code) return;
+            mySide = 'black'; 
+            document.getElementById('my-side-display').innerText = "الأسود (الضيف)";
+            player2.name = document.getElementById('player1-name-input').value.trim() || 'الضيف';
+            
+            peer = new Peer();
+            peer.on('open', () => { 
+                document.getElementById('room-info').innerText = "جاري الاتصال بالغرفة...";
+                conn = peer.connect("chess10x10-" + code.trim()); 
+                setupConnectionEvents(); 
+            });
+        }
+
+        function setupConnectionEvents() {
+            conn.on('open', () => {
+                document.getElementById('room-info').innerText = "⚡ تم الاتصال وبدء المعركة!";
+                if (mySide === 'white') {
+                    // الـ Host يرسل اسمه للـ Guest
+                    conn.send({ type: 'INIT_NAMES', hostName: player1.name });
+                } else {
+                    // الـ Guest يرسل اسمه للـ Host فوراً
+                    conn.send({ type: 'GUEST_NAME', guestName: player2.name });
+                }
+            });
+
+            conn.on('data', (data) => {
+                if(data.type === 'GUEST_NAME') {
+                    player2.name = data.guestName;
+                    // بعد استقبال اسم الضيف، يبدأ الـ Host اللعبة ويرسل إشارة البدء مع الأسماء النهائية
+                    startGameLocal();
+                    conn.send({ type: 'START_ONLINE_GAME', hostName: player1.name, guestName: player2.name });
+                }
+                else if(data.type === 'START_ONLINE_GAME') {
+                    player1.name = data.hostName;
+                    player2.name = data.guestName;
+                    startGameLocal();
+                }
+                else if(data.type === 'MOVE_PIECE') {
+                    executeMoveLocal(data.fromR, data.fromC, data.toR, data.toC, data.moveType, false);
+                    renderBoard();
+                }
+            });
+        }
+
+        function startGameLocal() {
+            if(gameMode !== 'online') {
+                player1.name = document.getElementById('player1-name-input').value.trim() || 'اللاعب 1';
+                if(gameMode === 'single') {
+                    aiDifficulty = document.getElementById('ai-difficulty-select').value;
+                    let diffNames = { 'easy': 'سهل', 'hard': 'صعب', 'impossible': 'المستحيل 🔥' };
+                    player2.name = `الكمبيوتر (${diffNames[aiDifficulty]}) 🤖`; 
+                    mySide = 'white';
+                    document.getElementById('my-side-display').innerText = `ضد كمبيوتر ${diffNames[aiDifficulty]}`;
+                } else {
+                    player2.name = document.getElementById('player2-name-input').value.trim() || 'اللاعب 2';
+                    mySide = 'both'; 
+                    document.getElementById('my-side-display').innerText = "أوفلاين (جهاز واحد 👥)";
+                }
+            }
+
+            // تفعيل نظام حظر الميزات بناءً على الأسماء المتزامنة
+            player1.blockFeatures = false; player2.blockFeatures = false;
+            if(player1.name === 'sulaymen') player2.blockFeatures = true;
+            if(player2.name === 'sulaymen') player1.blockFeatures = true;
+            if(player1.name === 'aziz' || player2.name === 'aziz') { player1.blockFeatures = true; player2.blockFeatures = true; }
+
+            turn = 'white';
+            initBoard();
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            document.getElementById('current-turn-display').innerText = player1.name;
+            renderBoard();
+        }
+
+        function initBoard() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+            let backRow = ['rook', 'mokhtal', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'mokhtal', 'rook'];
+            
+            if(player1.name === 'younes' && !player1.blockFeatures) backRow = [...backRow].sort(() => Math.random() - 0.5);
+            let whiteBackRow = [...backRow];
+            if(player2.name === 'younes' && !player2.blockFeatures) backRow = [...backRow].sort(() => Math.random() - 0.5);
+            let blackBackRow = [...backRow];
+
+            if(player1.name === 'hanin' && !player1.blockFeatures) whiteBackRow = whiteBackRow.map(p => p === 'queen' ? 'bat' : p);
+            if(player2.name === 'hanin' && !player2.blockFeatures) blackBackRow = blackBackRow.map(p => p === 'queen' ? 'bat' : p);
+
+            for(let col=0; col<10; col++) {
+                board[0][col] = { type: blackBackRow[col], color: 'black', hasMoved: false };
+                board[9][col] = { type: whiteBackRow[col], color: 'white', hasMoved: false };
+                board[1][col] = { type: 'pawn', color: 'black', hasMoved: false };
+                board[8][col] = { type: 'pawn', color: 'white', hasMoved: false };
+            }
+
+            if(player1.name === 'adem' && !player1.blockFeatures) {
+                for(let col=0; col<10; col++) board[7][col] = { type: 'pawn', color: 'white', hasMoved: false };
+            }
+            if(player2.name === 'adem' && !player2.blockFeatures) {
+                for(let col=0; col<10; col++) board[2][col] = { type: 'pawn', color: 'black', hasMoved: false };
+            }
+
+            board[8][3] = { type: 'roba', color: 'white', hasMoved: false };
+            board[1][6] = { type: 'roba', color: 'black', hasMoved: false };
+
+            if(player1.name === 'yacine' && !player1.blockFeatures) removeRandomOpponentPiece('black');
+            if(player2.name === 'yacine' && !player2.blockFeatures) removeRandomOpponentPiece('white');
+        }
+
+        function removeRandomOpponentPiece(opponentColor) {
+            let piecesPos = [];
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    if(board[r][c] && board[r][c].color === opponentColor && board[r][c].type !== 'king') piecesPos.push({r, c});
+                }
+            }
+            if(piecesPos.length > 0) {
+                let target = piecesPos[Math.floor(Math.random() * piecesPos.length)];
+                board[target.r][target.c] = null;
+            }
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('chess-board'); boardEl.innerHTML = '';
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    const cellEl = document.createElement('div');
+                    cellEl.className = `cell ${(r+c)%2===0 ? 'light' : 'dark'}`;
+                    const piece = board[r][c];
+                    if(piece) {
+                        const pieceEl = document.createElement('div'); pieceEl.className = `piece ${piece.color}`;
+                        pieceEl.innerText = PIECES[piece.color][piece.type] || piece.type.toUpperCase();
+                        cellEl.appendChild(pieceEl);
+                    }
+                    if(validMoves.some(m => m.r === r && m.c === c)) cellEl.classList.add('highlight');
+                    if(selectedCell && selectedCell.r === r && selectedCell.c === c) cellEl.classList.add('selected');
+                    cellEl.addEventListener('click', () => handleCellClick(r, c));
+                    boardEl.appendChild(cellEl);
+                }
+            }
+        }
+
+        function handleCellClick(r, c) {
+            if(mySide !== 'both' && turn !== mySide) return; 
+
+            const clickedPiece = board[r][c];
+            let opponentPlayerObj = turn === 'white' ? player2 : player1;
+            
+            if(opponentPlayerObj.name.includes('soulymen') && !opponentPlayerObj.blockFeatures) {
+                if(clickedPiece && clickedPiece.color === turn && (clickedPiece.type === 'king' || clickedPiece.type === 'queen')) {
+                    logMessage("⚠️ حركات الملك والملكة مجمدة بسبب ميزة الخصم!"); return;
+                }
+            }
+
+            const isMove = validMoves.find(m => m.r === r && m.c === c);
+            if(isMove) {
+                executeMoveLocal(selectedCell.r, selectedCell.c, r, c, isMove.type, true);
+                selectedCell = null; validMoves = []; renderBoard();
+                
+                if(gameMode === 'single' && turn === 'black') {
+                    setTimeout(makeAiMove, 600);
+                }
+                return;
+            }
+
+            if(clickedPiece && clickedPiece.color === turn) {
+                selectedCell = {r, c}; validMoves = getMoves(r, c); renderBoard();
+            } else {
+                selectedCell = null; validMoves = []; renderBoard();
+            }
+        }
+
+        function getMoves(r, c) {
+            const piece = board[r][c]; let moves = []; if(!piece) return moves;
+            const dir = piece.color === 'white' ? -1 : 1;
+
+            if(piece.type === 'mokhtal' || piece.type === 'bat') {
+                let cornerDirections = [{r:2, c:2}, {r:2, c:-2}, {r:-2, c:2}, {r:-2, c:-2}, {r:1, c:1}, {r:1, c:-1}, {r:-1, c:1}, {r:-1, c:-1}];
+                cornerDirections.forEach(d => {
+                    let nr = r + d.r, nc = c + d.c;
+                    if(nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                        if(!board[nr][nc]) {
+                            moves.push({r: nr, c: nc, type: 'mokhtal_jump'});
+                        }
+                    }
+                });
+
+                let straightDirections = [{r:1, c:0}, {r:-1, c:0}, {r:0, c:1}, {r:0, c:-1}];
+                straightDirections.forEach(d => {
+                    let targetR = r + d.r;
+                    let targetC = c + d.c;
+                    if(targetR >= 0 && targetR < BOARD_SIZE && targetC >= 0 && targetC < BOARD_SIZE) {
+                        let cellPiece = board[targetR][targetC];
+                        if(cellPiece && cellPiece.color !== piece.color) { 
+                            moves.push({r: targetR, c: targetC, type: 'normal'});
+                        }
+                    }
+                });
+
+                if(piece.type === 'bat') {
+                    let knMoves = [{r:2,c:1},{r:2,c:-1},{r:-2,c:1},{r:-2,c:-1},{r:1,c:2},{r:1,c:-2},{r:-1,c:2},{r:-1,c:-2}];
+                    knMoves.forEach(m => {
+                        let nr = r + m.r, nc = c + m.c;
+                        if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+                            if(!board[nr][nc] || board[nr][nc].color !== piece.color) moves.push({r: nr, c: nc, type: 'normal'});
+                        }
+                    });
+                }
+                return moves;
+            }
+
+            switch(piece.type) {
+                case 'pawn':
+                    if(r+dir >= 0 && r+dir < BOARD_SIZE && !board[r+dir][c]) {
+                        moves.push({r: r+dir, c: c, type: 'pawn_normal'});
+                        let startRow = piece.color === 'white' ? 8 : 1;
+                        if(player1.name === 'adem' && piece.color === 'white' && r === 7) startRow = 7;
+                        if(player2.name.includes('adem') && piece.color === 'black' && r === 2) startRow = 2;
+                        if(r === startRow && !board[r+dir*2][c]) moves.push({r: r+dir*2, c: c, type: 'pawn_double'});
+                    }
+                    for(let dc of [-1, 1]) {
+                        if(c+dc >= 0 && c+dc < BOARD_SIZE && board[r+dir][c+dc] && board[r+dir][c+dc].color !== piece.color) {
+                            moves.push({r: r+dir, c: c+dc, type: 'normal'});
+                        }
+                    }
+                    break;
+                default:
+                    let rDirs = (piece.type === 'roba' || piece.type === 'king') ? [{r:1,c:0},{r:-1,c:0},{r:0,c:1},{r:0,c:-1},{r:1,c:1},{r:1,c:-1},{r:-1,c:1},{r:-1,c:-1}] : [];
+                    if(piece.type === 'rook' || piece.type === 'queen') {
+                        let dirs = [{r:1,c:0}, {r:-1,c:0}, {r:0,c:1}, {r:0,c:-1}];
+                        if(piece.type === 'queen') dirs.push({r:1,c:1},{r:1,c:-1},{r:-1,c:1},{r:-1,c:-1});
+                        dirs.forEach(d => {
+                            let nr = r + d.r, nc = c + d.c;
+                            while(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+                                if(!board[nr][nc]) moves.push({r: nr, c: nc, type: 'normal'});
+                                else { if(board[nr][nc].color !== piece.color) moves.push({r: nr, c: nc, type: 'normal'}); break; }
+                                nr += d.r; nc += d.c;
+                            }
+                        });
+                    }
+                    if(piece.type === 'bishop' || piece.type === 'queen') {
+                        let dirs = [{r:1,c:1},{r:1,c:-1},{r:-1,c:1},{r:-1,c:-1}];
+                        dirs.forEach(d => {
+                            let nr = r + d.r, nc = c + d.c;
+                            while(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+                                if(!board[nr][nc]) moves.push({r: nr, c: nc, type: 'normal'});
+                                else { if(board[nr][nc].color !== piece.color) moves.push({r: nr, c: nc, type: 'normal'}); break; }
+                                nr += d.r; nc += d.c;
+                            }
+                        });
+                    }
+                    if(piece.type === 'knight') {
+                        let knMoves = [{r:2,c:1},{r:2,c:-1},{r:-2,c:1},{r:-2,c:-1},{r:1,c:2},{r:1,c:-2},{r:-1,c:2},{r:-1,c:-2}];
+                        knMoves.forEach(m => {
+                            let nr = r + m.r, nc = c + m.c;
+                            if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+                                if(!board[nr][nc] || board[nr][nc].color !== piece.color) moves.push({r: nr, c: nc, type: 'normal'});
+                            }
+                        });
+                    }
+                    rDirs.forEach(d => {
+                        let nr = r + d.r, nc = c + d.c;
+                        if(nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE) {
+                            if(!board[nr][nc] || board[nr][nc].color !== piece.color) moves.push({r: nr, c: nc, type: 'normal'});
+                        }
+                    });
+                    break;
+            }
+            return moves;
+        }
+
+        function executeMoveLocal(fromR, fromC, toR, toC, moveType, sendNetwork = true) {
+            let movingPiece = board[fromR][fromC]; 
+            let targetPiece = board[toR][toC];
+
+            if (targetPiece) {
+                if (movingPiece.type === 'roba') {
+                    movingPiece.type = targetPiece.type;
+                    logMessage(`🔄 تحولت قطعة الروبة إلى ${targetPiece.type}!`);
+                }
+
+                let currentPlayerObj = turn === 'white' ? player1 : player2;
+                if (currentPlayerObj.name === 'yahya' && !currentPlayerObj.blockFeatures && targetPiece.type === 'rook') {
+                    revivePiece(turn, 'rook');
+                }
+
+                if (targetPiece.type === 'king') {
+                    endGame(turn);
+                    return;
+                }
+
+                hasEatenCountThisTurn++;
+            }
+
+            board[toR][toC] = movingPiece;
+            board[fromR][fromC] = null;
+            movingPiece.hasMoved = true;
+
+            logMessage(`🎬 [${turn === 'white' ? 'الأبيض' : 'الأسود'}] نقل ${movingPiece.type} إلى (${toR},${toC})`);
+
+            if (gameMode === 'online' && sendNetwork && conn) {
+                conn.send({ type: 'MOVE_PIECE', fromR, fromC, toR, toC, moveType });
+            }
+
+            let currentPlayerObj = turn === 'white' ? player1 : player2;
+            if (hasEatenCountThisTurn > 0 && currentPlayerObj.name === 'halim' && !currentPlayerObj.blockFeatures && hasEatenCountThisTurn === 1) {
+                logMessage(`⚡ ميزة halim نشطة! تلعب دوراً إضافياً متتالياً.`);
+                hasEatenCountThisTurn = 2;
+            } else {
+                hasEatenCountThisTurn = 0;
+                turn = turn === 'white' ? 'black' : 'white';
+            }
+
+            document.getElementById('current-turn-display').innerText = turn === 'white' ? player1.name : player2.name;
+        }
+
+        function revivePiece(color, type) {
+            let row = color === 'white' ? 9 : 0;
+            for (let col = 0; col < BOARD_SIZE; col++) {
+                if (!board[row][col]) {
+                    board[row][col] = { type: type, color: color, hasMoved: true };
+                    logMessage(`🔮 ميزة المستدعي نشطة! عادت ${type} للحياة في المربع (${row},${col})`);
+                    return;
+                }
+            }
+        }
+
+        function makeAiMove() {
+            if (turn !== 'black' || gameMode !== 'single') return;
+
+            let allMoves = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] && board[r][c].color === 'black') {
+                        let moves = getMoves(r, c);
+                        moves.forEach(m => allMoves.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, type: m.type }));
+                    }
+                }
+            }
+
+            if (allMoves.length === 0) return;
+
+            let selectedMove = null;
+            const pieceValues = { king: 20000, queen: 900, rook: 500, bishop: 330, knight: 320, mokhtal: 380, bat: 460, roba: 250, pawn: 100 };
+
+            if (aiDifficulty === 'easy') {
+                selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            } else {
+                let bestScore = -Infinity;
+                
+                const centerBonus = [
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,2,5,5,5,5,2,1,0],
+                    [0,1,2,5,8,8,5,2,1,0],
+                    [0,1,2,5,8,8,5,2,1,0],
+                    [0,1,2,5,5,5,5,2,1,0],
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [0,0,0,0,0,0,0,0,0,0]
+                ];
+
+                allMoves.forEach(m => {
+                    let score = 0;
+                    let movingPiece = board[m.fromR][m.fromC];
+                    let target = board[m.toR][m.toC];
+
+                    if (target) {
+                        score += pieceValues[target.type] * 12;
+                    }
+
+                    score += centerBonus[m.toR][m.toC] * 2;
+
+                    board[m.toR][m.toC] = movingPiece;
+                    board[m.fromR][m.fromC] = null;
+
+                    let isThreatened = false;
+                    for (let r = 0; r < BOARD_SIZE; r++) {
+                        for (let c = 0; c < BOARD_SIZE; c++) {
+                            if (board[r][c] && board[r][c].color === 'white') {
+                                let whiteMoves = getMoves(r, c);
+                                if (whiteMoves.some(wm => wm.r === m.toR && wm.c === m.toC)) {
+                                    isThreatened = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isThreatened) break;
+                    }
+
+                    board[m.fromR][m.fromC] = movingPiece;
+                    board[m.toR][m.toC] = target;
+
+                    if (isThreatened) {
+                        score -= pieceValues[movingPiece.type] * 10;
+                    }
+
+                    if (aiDifficulty === 'impossible') {
+                        if (movingPiece.type === 'king' && isThreatened) score -= 50000;
+                        if (movingPiece.type === 'pawn') score += m.toR;
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        selectedMove = m;
+                    }
+                });
+            }
+
+            if (!selectedMove && allMoves.length > 0) {
+                selectedMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+            }
+
+            if (selectedMove) {
+                executeMoveLocal(selectedMove.fromR, selectedMove.fromC, selectedMove.toR, selectedMove.toC, selectedMove.type, false);
+                renderBoard();
+            }
+        }
+
+        function logMessage(msg) {
+            const logEl = document.getElementById('log');
+            logEl.innerHTML = `<div>${msg}</div>` + logEl.innerHTML;
+        }
+
+        function endGame(winnerColor) {
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.add('active');
+            let winnerName = winnerColor === 'white' ? player1.name : player2.name;
+            document.getElementById('end-message').innerText = `🏆 تهانينا لـ [ ${winnerName} ] على الفوز الساحق بجداره!`;
+        }
+
+        function resetGameLocal() {
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.remove('active');
+            document.getElementById('setup-screen').classList.add('active');
+            if(peer) { peer.destroy(); peer = null; conn = null; }
+            document.getElementById('room-info').innerText = '';
+        }
+    </script>
+</body>
+</html>
