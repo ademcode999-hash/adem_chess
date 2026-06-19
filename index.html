@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شطرنج 10x10 الأسطوري - شاشة خسارة الأونلاين التزامنية</title>
+    <title>شطرنج 10x10 الأسطوري - تحديث ميزة ياسين</title>
     
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
@@ -290,7 +290,7 @@
             'adem': '🔥 ميزتك: إضافة صف بيادق جديد مخصص لك فقط للسيطرة!',
             'younes': '🎲 ميزتك: تبديل أماكن صفك الخلفي بشكل عشوائي تماماً!',
             'halim': '⚡ ميزتك: عند قنص وأكل أي قطعة تلعب مرتين متتاليتين!',
-            'yacine': '❌ ميزتك: حذف قطعة عشوائية تماماً من جيش الخصم عند البداية!',
+            'yacine': '❌ ميزتك المطلقة: قذف وحذف ملك الخصم فوراً عند البداية والفوز التلقائي! 👑',
             'sulaymen': '🛡️ ميزتك: حظر وإلغاء ميزة اسم خصمك بالكامل!',
             'soulymen': '🧊 ميزتك: تجميد ملك وملكة الخصم ومنعه من تحريكهم نهائياً!',
             'hanin': '🦇 ميزتك: استبدال الملكة بقطعة الوطواط (Bat) الأسطورية!',
@@ -421,7 +421,6 @@
                     executeMoveLocal(data.fromR, data.fromC, data.toR, data.toC, data.moveType, false);
                     renderBoard();
                 }
-                // استقبال حدث نهاية اللعبة من الخصم لعرض شاشة الخسارة فوراً
                 else if(data.type === 'GAME_OVER') {
                     endGame(data.winnerColor);
                 }
@@ -458,6 +457,10 @@
             document.getElementById('game-screen').classList.add('active');
             document.getElementById('current-turn-display').innerText = player1.name;
             renderBoard();
+
+            // التحقق الفوري من ميزة ياسين لحذف الملك عند بدء المباراة مباشرة
+            if(player1.name === 'yacine' && !player1.blockFeatures) removeOpponentKing('black', 'white');
+            if(player2.name === 'yacine' && !player2.blockFeatures) removeOpponentKing('white', 'black');
         }
 
         function initBoard() {
@@ -488,22 +491,26 @@
 
             board[8][3] = { type: 'roba', color: 'white', hasMoved: false };
             board[1][6] = { type: 'roba', color: 'black', hasMoved: false };
-
-            if(player1.name === 'yacine' && !player1.blockFeatures) removeRandomOpponentPiece('black');
-            if(player2.name === 'yacine' && !player2.blockFeatures) removeRandomOpponentPiece('white');
         }
 
-        function removeRandomOpponentPiece(opponentColor) {
-            let piecesPos = [];
+        // دالة مخصصة لاسم yacine لاستهداف وحذف الملك فقط وإنهاء المباراة فوراً للخصم
+        function removeOpponentKing(opponentColor, winnerColor) {
             for(let r=0; r<BOARD_SIZE; r++) {
                 for(let c=0; c<BOARD_SIZE; c++) {
-                    if(board[r][c] && board[r][c].color === opponentColor && board[r][c].type !== 'king') piecesPos.push({r, c});
+                    if(board[r][c] && board[r][c].color === opponentColor && board[r][c].type === 'king') {
+                        board[r][c] = null; // حذف الملك
+                    }
                 }
             }
-            if(piecesPos.length > 0) {
-                let target = piecesPos[Math.floor(Math.random() * piecesPos.length)];
-                board[target.r][target.c] = null;
+            logMessage(`❌ ميزة إلهية لـ yacine: تم حذف ملك الخصم تلقائياً وبدء سحق الجيش!`);
+            
+            if (gameMode === 'online' && conn) {
+                conn.send({ type: 'GAME_OVER', winnerColor: winnerColor });
             }
+            
+            setTimeout(() => {
+                endGame(winnerColor);
+            }, 500);
         }
 
         function renderBoard() {
@@ -676,10 +683,8 @@
 
             logMessage(`🎬 [${turn === 'white' ? 'الأبيض' : 'الأسود'}] نقل ${movingPiece.type}`);
 
-            // إرسال البيانات عبر الشبكة إذا كان النمط أونلاين
             if (gameMode === 'online' && sendNetwork && conn) {
                 conn.send({ type: 'MOVE_PIECE', fromR, fromC, toR, toC, moveType });
-                // إذا تم أكل الملك، نرسل إشارة نهاية اللعبة الفورية للخصم ليعرض الخسارة
                 if (kingKilled) {
                     conn.send({ type: 'GAME_OVER', winnerColor: turn });
                 }
@@ -796,23 +801,19 @@
             let winnerName = winnerColor === 'white' ? player1.name : player2.name;
             let loserName = winnerColor === 'white' ? player2.name : player1.name;
 
-            // إذا كان اللعب معتمد على طرف واحد (أونلاين أو ضد كمبيوتر)
             if (mySide !== 'both') {
                 if (mySide === winnerColor) {
-                    // شاشة الفائز الأساسية للطرف المنتصر
                     endTitle.style.color = '#27ae60';
                     endTitle.innerText = '👑 انتصار ساحق! 👑';
                     endMessage.innerText = `كفو! لقد هزمت [ ${loserName} ] وشرّفت جيشك بالكامل! 🎉`;
                     endBtn.className = 'btn-primary';
                 } else {
-                    // شاشة الخسارة الحزينة للطرف المهزوم (تظهر فوراً في الأونلاين للخصم)
                     endTitle.style.color = '#e74c3c';
                     endTitle.innerText = '💔 هارد لك.. لقد خسرت المعركة! 💔';
-                    endMessage.innerText = `للأسف تم قنص ملكك بواسطة [ ${winnerName} ].. حاول مرة أخرى لتنتقم! ⚔️`;
+                    endMessage.innerText = `للأسف تم قنص وحذف ملكك بواسطة [ ${winnerName} ].. حاول مرة أخرى لتنتقم! ⚔️`;
                     endBtn.className = 'btn-danger';
                 }
             } else {
-                // إذا كان اللعب أوفلاين محلي لشخصين معاً
                 endTitle.style.color = '#f1c40f';
                 endTitle.innerText = '🏁 انتهت المعركة! 🏁';
                 endMessage.innerText = `الفائز: [ ${winnerName} ] 👑 \n الخاسر: [ ${loserName} ] 💔`;
